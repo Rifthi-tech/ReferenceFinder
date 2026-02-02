@@ -1,14 +1,35 @@
 {
   "manifest_version": 3,
-  "name": "Simple Reference Finder",
-  "version": "1.0.0",
-  "description": "Quickly filter research references by author and year",
-  "permissions": ["activeTab"],
-  "action": {
-    "default_popup": "popup.html"
+  "name": "Simple Research Finder",
+  "version": "1.0",
+  "description": "Quickly filter research results by author and year",
+  "icons": {
+    "16": "Image/pngtree-filter-icon-isolated-on-abstract-background-png-image_1775662.png",
+    "48": "Image/pngtree-filter-icon-isolated-on-abstract-background-png-image_1775662.png",
+    "128": "Image/pngtree-filter-icon-isolated-on-abstract-background-png-image_1775662.png"
   },
-  "content_scripts": [{
-    "matches": ["https://www.google.com/*", "https://scholar.google.com/*"],
-    "js": ["content.js"]
-  }]
+  "permissions": ["activeTab"],
+  "host_permissions": [
+    "https://www.google.com/*",
+    "https://scholar.google.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "Image/pngtree-filter-icon-isolated-on-abstract-background-png-image_1775662.png",
+      "48": "Image/pngtree-filter-icon-isolated-on-abstract-background-png-image_1775662.png",
+      "128": "Image/pngtree-filter-icon-isolated-on-abstract-background-png-image_1775662.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.google.com/*",
+        "https://scholar.google.com/*",
+        "https://www.bing.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ]
 }
