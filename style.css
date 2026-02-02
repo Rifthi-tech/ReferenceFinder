@@ -4,7 +4,7 @@
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  width: 400px;
+  width: 450px;
   padding: 12px;
   margin: 0;
   background-color: #f5f5f5;
@@ -19,23 +19,25 @@ h2 {
 
 .filter-section {
   background: white;
-  padding: 10px;
+  padding: 12px;
   border-radius: 6px;
   margin-bottom: 12px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-input, select {
+select {
   width: 100%;
-  padding: 8px;
-  margin-bottom: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 13px;
   font-family: inherit;
+  background-color: white;
+  cursor: pointer;
 }
 
-input:focus, select:focus {
+select:focus {
   outline: none;
   border-color: #4CAF50;
   box-shadow: 0 0 4px rgba(76, 175, 80, 0.3);
@@ -43,13 +45,14 @@ input:focus, select:focus {
 
 button {
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   cursor: pointer;
   background-color: #4CAF50;
   color: white;
   border: none;
   border-radius: 4px;
   font-weight: bold;
+  font-size: 14px;
   transition: background-color 0.2s;
 }
 
@@ -59,10 +62,10 @@ button:hover {
 
 button.copy-btn {
   width: auto;
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 6px 12px;
+  font-size: 12px;
   background-color: #2196F3;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 button.copy-btn:hover {
@@ -73,31 +76,43 @@ ul {
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: 450px;
+  max-height: 500px;
   overflow-y: auto;
 }
 
 li {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   background: white;
-  padding: 10px;
+  padding: 12px;
   border-radius: 4px;
-  border-left: 3px solid #4CAF50;
+  border-left: 4px solid #4CAF50;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+li.no-results {
+  text-align: center;
+  color: #999;
+  border-left: none;
+  padding: 20px 12px;
 }
 
 .reference-item {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+
+.ref-title {
+  margin-bottom: 6px;
 }
 
 .ref-link {
   color: #2196F3;
   text-decoration: none;
   font-weight: 500;
-  font-size: 12px;
+  font-size: 13px;
   word-wrap: break-word;
-  margin-bottom: 6px;
+  line-height: 1.4;
 }
 
 .ref-link:hover {
@@ -105,16 +120,55 @@ li {
 }
 
 .ref-meta {
-  font-size: 11px;
-  color: #666;
-  margin-bottom: 6px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  font-size: 11px;
 }
 
-.ref-meta span {
+.tag {
   background: #f0f0f0;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 3px;
+  color: #555;
+  font-weight: 500;
+  border: 1px solid #e0e0e0;
+}
+
+.author-tag {
+  background: #e3f2fd;
+  color: #1565c0;
+  border-color: #90caf9;
+}
+
+.year-tag {
+  background: #f3e5f5;
+  color: #6a1b9a;
+  border-color: #ce93d8;
+}
+
+.domain-tag {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #81c784;
+  flex: 1;
+  text-align: right;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }

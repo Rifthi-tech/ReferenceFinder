@@ -12,12 +12,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             const text = link.innerText.trim();
             
             if (!url || !text) return null;
+            if (!url.startsWith('http')) return null;
+            if (text.length < 5) return null;
             
             let domain = "";
             try {
               domain = new URL(url).hostname.replace('www.', '');
             } catch (e) {
-              domain = url;
+              return null;
             }
             
             return {
@@ -25,17 +27,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               url: url,
               domain: domain,
               author: extractAuthor(text),
-              year: extractYear(text),
-              site: domain
+              year: extractYear(text)
             };
           } catch (e) {
-            console.error("Error mapping link:", e);
             return null;
           }
         })
-        .filter(link => link && link.text.length > 5 && link.url.startsWith('http'));
+        .filter(link => link !== null && link.author && link.year);
 
-      console.log("Found links:", links.length);
+      console.log("Found " + links.length + " valid references");
       sendResponse(links);
     } catch (e) {
       console.error("Error in getLinks:", e);
@@ -56,8 +56,21 @@ function extractYear(text) {
 
 function extractAuthor(text) {
   try {
-    const parts = text.split(/[|\-\–]/)[0].trim();
-    return parts.length > 50 ? '' : parts;
+    const parts = text.split(/[|–\-\n]/)[0].trim();
+    const authorMatch = parts.match(/^([A-Za-z\s&,]+?)(?:\s+\d{4}|,|\s+\()/);
+    
+    if (authorMatch) {
+      const author = authorMatch[1].trim();
+      if (author.length > 3 && author.length < 100) {
+        return author;
+      }
+    }
+    
+    if (parts.length > 3 && parts.length < 100) {
+      return parts;
+    }
+    
+    return '';
   } catch (e) {
     return '';
   }
