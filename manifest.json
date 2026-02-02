@@ -3,7 +3,8 @@
   "name": "Research or Report Reference Finder",
   "description": "Filter and organize research references from web pages.",
   "version": "1.0",
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html"
   },

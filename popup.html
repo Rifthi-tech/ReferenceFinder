@@ -7,13 +7,28 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h2>Reference Finder</h2>
+    <h2>📚 Reference Finder</h2>
 
-  <input type="text" id="filterInput" placeholder="Filter by keyword or site">
-  <button id="filterBtn">Apply Filter</button>
+    <div class="filter-section">
+      <input type="text" id="filterInput" placeholder="Filter by keyword...">
+      
+      <select id="authorFilter" title="Filter by author">
+        <option value="">All Authors</option>
+      </select>
+      
+      <select id="yearFilter" title="Filter by year">
+        <option value="">All Years</option>
+      </select>
+      
+      <select id="siteFilter" title="Filter by site">
+        <option value="">All Sites</option>
+      </select>
+      
+      <button id="filterBtn">Apply Filter</button>
+    </div>
 
-  <ul id="results"></ul>
+    <ul id="results"><li>Loading references...</li></ul>
 
-  <script src="popup.js"></script>
+    <script src="popup.js"></script>
 </body>
 </html>
