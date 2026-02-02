@@ -1,80 +1,42 @@
-// Content script for extracting and filtering search results
+// Auto-detect search results on page
+const detectedResults = [];
 
-class SearchResultExtractor {
-    constructor() {
-        this.results = [];
-        this.originalResults = [];
-        this.isGoogle = window.location.hostname.includes('google');
-        this.isGoogleScholar = window.location.hostname.includes('scholar.google');
-        this.isBing = window.location.hostname.includes('bing.com');
-        this.initialize();
+// Common author patterns in search results
+const authorPatterns = [
+    /by\s+([^\.]+?)(?:\.|,|\d|$)/i,
+    /author[s]?:\s*([^\.]+?)(?:\.|,|$)/i,
+    /([A-Z][a-z]+ [A-Z][a-z]+)(?:\s+et al\.)?\s*[-–]\s*(?:19|20)\d{2}/,
+    /([A-Z]\.[A-Z][a-z]+)(?:\s+et al\.)?\s*,\s*(?:19|20)\d{2}/
+];
+
+// Year patterns
+const yearPatterns = [
+    /(?:19|20)\d{2}/g
+];
+
+function extractResults() {
+    detectedResults.length = 0;
+    
+    // For Google Search
+    const googleResults = document.querySelectorAll('div.g, div[data-hveid]');
+    if (googleResults.length > 0) {
+        extractGoogleResults(googleResults);
+        return;
     }
-
-    initialize() {
-        // Listen for messages from popup
-        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-            switch (request.action) {
-                case 'extractResults':
-                    this.extractAllResults();
-                    sendResponse({success: true, results: this.results});
-                    break;
-                    
-                case 'applyFilters':
-                    this.applyFilters(request.filters);
-                    this.highlightResults();
-                    sendResponse({success: true, results: this.results});
-                    break;
-                    
-                case 'resetFilters':
-                    this.resetFilters();
-                    sendResponse({success: true, results: this.results});
-                    break;
-            }
-            return true;
-        });
+    
+    // For Google Scholar
+    const scholarResults = document.querySelectorAll('.gs_r, .gs_ri');
+    if (scholarResults.length > 0) {
+        extractScholarResults(scholarResults);
+        return;
     }
+    
+    // Fallback: find all links that look like research papers
+    extractGenericResults();
+}
 
-    extractAllResults() {
-        this.results = [];
-        this.originalResults = [];
-        
-        if (this.isGoogle || this.isGoogleScholar) {
-            this.extractGoogleResults();
-        } else if (this.isBing) {
-            this.extractBingResults();
-        } else {
-            this.extractGenericResults();
-        }
-        
-        this.originalResults = [...this.results];
-    }
-
-    extractGoogleResults() {
-        // Select all search result containers
-        const resultSelectors = [
-            'div.g', // Regular Google results
-            'div[data-hveid]', // Some Google results
-            'div.gs_r.gs_or.gs_scl', // Google Scholar results
-            'div.gs_ri' // Google Scholar result items
-        ];
-        
-        let resultElements = [];
-        resultSelectors.forEach(selector => {
-            resultElements = resultElements.concat(Array.from(document.querySelectorAll(selector)));
-        });
-        
-        // Remove duplicates by checking if element already exists
-        resultElements = [...new Set(resultElements)];
-        
-        resultElements.forEach((element, index) => {
-            const result = this.parseGoogleResult(element, index);
-            if (result && result.url) {
-                this.results.push(result);
-            }
-        });
-    }
-
-    parseGoogleResult(element, index) {
+function extractGoogleResults(elements) {
+    elements.forEach((element, index) => {
         const result = {
             id: index,
             title: '',
@@ -84,266 +46,177 @@ class SearchResultExtractor {
             domain: ''
         };
         
-        // Try to get title
-        const titleElement = element.querySelector('h3, .gs_rt a, a[data-ved]');
-        if (titleElement) {
-            result.title = titleElement.textContent.trim();
-            
-            // Get URL from title link
-            if (titleElement.tagName === 'A') {
-                result.url = titleElement.href;
-            }
+        // Get title and URL
+        const titleLink = element.querySelector('h3 a, .yuRUbf a');
+        if (titleLink) {
+            result.title = titleLink.textContent.trim();
+            result.url = titleLink.href;
         }
         
-        // Alternative URL extraction
-        if (!result.url) {
-            const link = element.querySelector('a[href*="http"]');
-            if (link) {
-                result.url = link.href;
-            }
-        }
-        
-        // Extract domain from URL
-        if (result.url) {
-            try {
-                const urlObj = new URL(result.url);
-                result.domain = urlObj.hostname.replace('www.', '');
-            } catch (e) {
-                result.domain = '';
-            }
-        }
-        
-        // Try to extract author and year (common in academic papers)
-        const textContent = element.textContent;
-        
-        // Look for author patterns
-        const authorMatch = textContent.match(/by\s+([^\.]+?)(?:\.|,|\d|$)/i);
-        if (authorMatch) {
-            result.author = authorMatch[1].trim();
-        }
-        
-        // Look for year patterns (4-digit years)
-        const yearMatch = textContent.match(/(?:19|20)\d{2}/);
-        if (yearMatch) {
-            result.year = yearMatch[0];
-        }
-        
-        // For Google Scholar, check specific elements
-        if (this.isGoogleScholar) {
-            const authorsElement = element.querySelector('.gs_a');
-            if (authorsElement) {
-                const authorText = authorsElement.textContent;
-                const authorYearMatch = authorText.match(/([^-]+)-([^,]+),.*?(\d{4})/);
-                if (authorYearMatch) {
-                    result.author = authorYearMatch[1].trim();
-                    result.year = authorYearMatch[3];
-                }
-            }
-        }
-        
-        return result;
-    }
-
-    extractBingResults() {
-        const resultElements = document.querySelectorAll('li.b_algo');
-        
-        resultElements.forEach((element, index) => {
-            const result = {
-                id: index,
-                title: '',
-                url: '',
-                author: '',
-                year: '',
-                domain: ''
-            };
-            
-            // Bing specific extraction
-            const titleElement = element.querySelector('h2 a');
-            if (titleElement) {
-                result.title = titleElement.textContent.trim();
-                result.url = titleElement.href;
-            }
-            
+        // Get domain
+        try {
             if (result.url) {
-                try {
-                    const urlObj = new URL(result.url);
-                    result.domain = urlObj.hostname.replace('www.', '');
-                } catch (e) {
-                    result.domain = '';
-                }
+                result.domain = new URL(result.url).hostname.replace('www.', '');
             }
-            
-            // Try to extract metadata from snippet
-            const snippet = element.querySelector('.b_caption p');
-            if (snippet) {
-                const snippetText = snippet.textContent;
-                
-                // Look for author
-                const authorMatch = snippetText.match(/(?:by|author[s]?)\s+([^\.]+?)(?:\.|,|\d|$)/i);
-                if (authorMatch) {
-                    result.author = authorMatch[1].trim();
-                }
-                
-                // Look for year
-                const yearMatch = snippetText.match(/(?:19|20)\d{2}/);
-                if (yearMatch) {
-                    result.year = yearMatch[0];
-                }
-            }
-            
-            this.results.push(result);
-        });
-    }
-
-    extractGenericResults() {
-        // Fallback for other search engines
-        const links = document.querySelectorAll('a[href*="http"]');
-        const seenUrls = new Set();
+        } catch(e) {}
         
-        links.forEach((link, index) => {
-            const url = link.href;
-            
-            // Skip common navigation links and duplicates
-            if (seenUrls.has(url) || 
-                url.includes('google.com') || 
-                url.includes('bing.com') ||
-                !url.startsWith('http')) {
-                return;
-            }
-            
-            seenUrls.add(url);
-            
-            const result = {
-                id: index,
-                title: link.textContent.trim() || link.title || 'No title',
-                url: url,
-                author: '',
-                year: '',
-                domain: ''
-            };
-            
-            try {
-                const urlObj = new URL(url);
-                result.domain = urlObj.hostname.replace('www.', '');
-            } catch (e) {
-                result.domain = '';
-            }
-            
-            this.results.push(result);
-        });
-    }
-
-    applyFilters(filters) {
-        // Reset to original results
-        this.results = [...this.originalResults];
-        
-        if (!filters || Object.keys(filters).length === 0) {
-            return;
+        // Extract author and year from snippet
+        const snippet = element.querySelector('.VwiC3b, .IsZvec, .st');
+        if (snippet) {
+            const text = snippet.textContent;
+            result.author = extractAuthor(text);
+            result.year = extractYear(text);
         }
         
-        // Apply each filter
-        this.results = this.results.filter(result => {
-            let passes = true;
-            
-            // Author filter
-            if (filters.author && result.author) {
-                passes = passes && result.author.toLowerCase().includes(filters.author);
-            }
-            
-            // Year filter
-            if (filters.yearFrom || filters.yearTo) {
-                if (result.year) {
-                    const year = parseInt(result.year);
-                    if (filters.yearFrom && year < filters.yearFrom) passes = false;
-                    if (filters.yearTo && year > filters.yearTo) passes = false;
-                } else {
-                    passes = false; // No year information available
-                }
-            }
-            
-            // Site/Domain filter
-            if (filters.site && result.domain) {
-                passes = passes && result.domain.toLowerCase().includes(filters.site);
-            }
-            
-            // URL keyword filter
-            if (filters.urlKeyword && result.url) {
-                passes = passes && result.url.toLowerCase().includes(filters.urlKeyword);
-            }
-            
-            return passes;
-        });
-    }
-
-    resetFilters() {
-        this.results = [...this.originalResults];
-        this.removeHighlighting();
-    }
-
-    highlightResults() {
-        this.removeHighlighting();
-        
-        // Create highlighted results container if it doesn't exist
-        let highlightContainer = document.getElementById('rrf-highlight-container');
-        if (!highlightContainer) {
-            highlightContainer = document.createElement('div');
-            highlightContainer.id = 'rrf-highlight-container';
-            highlightContainer.className = 'rrf-highlight-container';
-            document.body.appendChild(highlightContainer);
+        if (result.url) {
+            detectedResults.push(result);
         }
-        
-        // Show filtered results count
-        const filteredCount = this.results.length;
-        const totalCount = this.originalResults.length;
-        
-        const countBadge = document.createElement('div');
-        countBadge.className = 'rrf-count-badge';
-        countBadge.textContent = `📊 Showing ${filteredCount} of ${totalCount} results`;
-        highlightContainer.appendChild(countBadge);
-        
-        // Add each filtered result to highlight container
-        this.results.forEach((result, index) => {
-            const resultCard = document.createElement('div');
-            resultCard.className = 'rrf-result-card';
-            resultCard.dataset.url = result.url;
-            
-            resultCard.innerHTML = `
-                <div class="rrf-result-title">${result.title || 'No title'}</div>
-                <div class="rrf-result-url">${result.url}</div>
-                <div class="rrf-result-meta">
-                    ${result.author ? `<span class="rrf-author">👤 ${result.author}</span>` : ''}
-                    ${result.year ? `<span class="rrf-year">📅 ${result.year}</span>` : ''}
-                    ${result.domain ? `<span class="rrf-domain">🌐 ${result.domain}</span>` : ''}
-                </div>
-                <button class="rrf-visit-btn">Visit →</button>
-            `;
-            
-            // Add click handler for visit button
-            resultCard.querySelector('.rrf-visit-btn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                window.open(result.url, '_blank');
-            });
-            
-            highlightContainer.appendChild(resultCard);
-        });
-    }
-
-    removeHighlighting() {
-        const container = document.getElementById('rrf-highlight-container');
-        if (container) {
-            container.remove();
-        }
-    }
+    });
 }
 
-// Initialize the extractor when page loads
-let extractor;
-
-// Wait for page to be fully loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        extractor = new SearchResultExtractor();
+function extractScholarResults(elements) {
+    elements.forEach((element, index) => {
+        const result = {
+            id: index,
+            title: '',
+            url: '',
+            author: '',
+            year: '',
+            domain: 'scholar.google.com'
+        };
+        
+        // Title and link
+        const titleEl = element.querySelector('.gs_rt a, h3 a');
+        if (titleEl) {
+            result.title = titleEl.textContent.trim();
+            result.url = titleEl.href || '#';
+        }
+        
+        // Author and year info (Google Scholar specific)
+        const infoEl = element.querySelector('.gs_a');
+        if (infoEl) {
+            const infoText = infoEl.textContent;
+            // Format: "Authors - Publication, Year"
+            const match = infoText.match(/([^-]+)-([^,]+),\s*(\d{4})/);
+            if (match) {
+                result.author = match[1].trim();
+                result.year = match[3];
+            }
+        }
+        
+        if (result.title) {
+            detectedResults.push(result);
+        }
     });
+}
+
+function extractGenericResults() {
+    const links = document.querySelectorAll('a[href*="http"]');
+    const seen = new Set();
+    
+    links.forEach((link, index) => {
+        const url = link.href;
+        if (seen.has(url) || !url.startsWith('http')) return;
+        seen.add(url);
+        
+        const result = {
+            id: index,
+            title: link.textContent.trim() || link.title || 'No title',
+            url: url,
+            author: '',
+            year: '',
+            domain: ''
+        };
+        
+        try {
+            result.domain = new URL(url).hostname.replace('www.', '');
+        } catch(e) {}
+        
+        detectedResults.push(result);
+    });
+}
+
+function extractAuthor(text) {
+    for (const pattern of authorPatterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+            return match[1].trim();
+        }
+    }
+    return '';
+}
+
+function extractYear(text) {
+    for (const pattern of yearPatterns) {
+        const match = text.match(pattern);
+        if (match) {
+            return match[0];
+        }
+    }
+    return '';
+}
+
+// Highlight results on page
+function highlightResults(urls) {
+    // Remove previous highlights
+    document.querySelectorAll('.ref-finder-highlight').forEach(el => {
+        el.classList.remove('ref-finder-highlight');
+    });
+    
+    // Highlight matching results
+    detectedResults.forEach(result => {
+        if (urls.includes(result.url)) {
+            // Find the element containing this result
+            const elements = document.querySelectorAll(`a[href="${result.url}"]`);
+            elements.forEach(el => {
+                let parent = el.closest('div.g, .gs_r, .gs_ri, li');
+                if (parent) {
+                    parent.classList.add('ref-finder-highlight');
+                }
+            });
+        }
+    });
+}
+
+// Listen for messages from popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    switch(request.action) {
+        case "getResults":
+            extractResults();
+            sendResponse({results: detectedResults});
+            break;
+            
+        case "highlightResults":
+            highlightResults(request.results);
+            sendResponse({success: true});
+            break;
+    }
+    return true;
+});
+
+// Add CSS for highlighting
+const style = document.createElement('style');
+style.textContent = `
+    .ref-finder-highlight {
+        background-color: rgba(26, 115, 232, 0.1) !important;
+        border: 2px solid #1a73e8 !important;
+        border-radius: 8px !important;
+        padding: 10px !important;
+        margin: 5px 0 !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .ref-finder-highlight:hover {
+        background-color: rgba(26, 115, 232, 0.2) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    }
+`;
+document.head.appendChild(style);
+
+// Auto-extract when page loads
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', extractResults);
 } else {
-    extractor = new SearchResultExtractor();
+    extractResults();
 }
