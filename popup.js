@@ -1,21 +1,43 @@
 let allLinks = [];
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadReferences();
-  setupEventListeners();
+window.addEventListener("load", () => {
+  console.log("Popup loaded, starting to load references...");
+  setTimeout(() => {
+    loadReferences();
+    setupEventListeners();
+  }, 100);
 });
 
 function loadReferences() {
-  chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+  console.log("loadReferences called");
+  
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    console.log("Tabs query result:", tabs);
+    
+    if (!tabs || tabs.length === 0) {
+      console.error("No active tab found");
+      document.getElementById("results").innerHTML = "<li>No active tab</li>";
+      return;
+    }
+
+    const tabId = tabs[0].id;
+    console.log("Sending message to tab:", tabId);
+
     chrome.tabs.sendMessage(
-      tabs[0].id,
+      tabId,
       { action: "getLinks" },
-      links => {
+      (response) => {
+        console.log("Response from content script:", response);
+        
         if (chrome.runtime.lastError) {
-          document.getElementById("results").innerHTML = "<li>Unable to load references</li>";
+          console.error("Chrome error:", chrome.runtime.lastError);
+          document.getElementById("results").innerHTML = "<li>Error: " + chrome.runtime.lastError.message + "</li>";
           return;
         }
-        allLinks = links || [];
+
+        allLinks = response || [];
+        console.log("Links received:", allLinks.length);
+        
         displayResults(allLinks);
         populateFilters();
       }
@@ -24,11 +46,19 @@ function loadReferences() {
 }
 
 function setupEventListeners() {
-  document.getElementById("filterBtn").addEventListener("click", applyFilters);
-  document.getElementById("filterInput").addEventListener("keyup", applyFilters);
-  document.getElementById("authorFilter").addEventListener("change", applyFilters);
-  document.getElementById("yearFilter").addEventListener("change", applyFilters);
-  document.getElementById("siteFilter").addEventListener("change", applyFilters);
+  console.log("Setting up event listeners");
+  
+  const filterBtn = document.getElementById("filterBtn");
+  const filterInput = document.getElementById("filterInput");
+  const authorFilter = document.getElementById("authorFilter");
+  const yearFilter = document.getElementById("yearFilter");
+  const siteFilter = document.getElementById("siteFilter");
+
+  if (filterBtn) filterBtn.addEventListener("click", applyFilters);
+  if (filterInput) filterInput.addEventListener("keyup", applyFilters);
+  if (authorFilter) authorFilter.addEventListener("change", applyFilters);
+  if (yearFilter) yearFilter.addEventListener("change", applyFilters);
+  if (siteFilter) siteFilter.addEventListener("change", applyFilters);
 }
 
 function applyFilters() {
@@ -53,6 +83,8 @@ function applyFilters() {
 }
 
 function populateFilters() {
+  console.log("Populating filters with", allLinks.length, "links");
+  
   const authors = [...new Set(allLinks.map(l => l.author).filter(a => a))];
   const years = [...new Set(allLinks.map(l => l.year).filter(y => y))].sort((a, b) => b - a);
   const sites = [...new Set(allLinks.map(l => l.site))];
@@ -60,6 +92,11 @@ function populateFilters() {
   const authorSelect = document.getElementById("authorFilter");
   const yearSelect = document.getElementById("yearFilter");
   const siteSelect = document.getElementById("siteFilter");
+
+  if (!authorSelect || !yearSelect || !siteSelect) {
+    console.error("Filter elements not found");
+    return;
+  }
 
   authors.forEach(author => {
     if (![...authorSelect.options].map(o => o.value).includes(author)) {
@@ -90,7 +127,14 @@ function populateFilters() {
 }
 
 function displayResults(links) {
+  console.log("Displaying", links.length, "results");
+  
   const list = document.getElementById("results");
+  if (!list) {
+    console.error("Results list not found");
+    return;
+  }
+  
   list.innerHTML = "";
 
   if (links.length === 0) {
@@ -132,5 +176,7 @@ function copyToClipboard(link) {
   const text = `${link.text}\n${link.url}`;
   navigator.clipboard.writeText(text).then(() => {
     alert("Reference copied!");
+  }).catch(err => {
+    console.error("Copy failed:", err);
   });
 }
