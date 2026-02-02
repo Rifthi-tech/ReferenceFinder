@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Reference Finder</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span class="icon">🔍</span> Reference Finder</h1>
+            <p class="subtitle">Filter search results by specific criteria</p>
+        </header>
+        
+        <div class="status" id="status">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>Scanning page...</span>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <h2>Filter Criteria</h2>
+            
+            <div class="filter-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="filterAuthor" class="filter-checkbox">
+                    <span class="checkmark"></span>
+                    Author Name
+                </label>
+                <input type="text" id="authorInput" class="filter-input" placeholder="e.g., John Smith" disabled>
+            </div>
+
+            <div class="filter-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="filterYear" class="filter-checkbox">
+                    <span class="checkmark"></span>
+                    Publication Year
+                </label>
+                <div class="year-inputs">
+                    <input type="number" id="yearFrom" class="filter-input small" placeholder="From" min="1900" max="2100" disabled>
+                    <span>to</span>
+                    <input type="number" id="yearTo" class="filter-input small" placeholder="To" min="1900" max="2100" disabled>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="filterSite" class="filter-checkbox">
+                    <span class="checkmark"></span>
+                    Website/Domain
+                </label>
+                <input type="text" id="siteInput" class="filter-input" placeholder="e.g., arxiv.org, jstor.org" disabled>
+            </div>
+
+            <div class="filter-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="filterUrl" class="filter-checkbox">
+                    <span class="checkmark"></span>
+                    URL Contains
+                </label>
+                <input type="text" id="urlInput" class="filter-input" placeholder="Keyword in URL" disabled>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="applyFilters" class="btn btn-primary">Apply Filters</button>
+            <button id="resetFilters" class="btn btn-secondary">Reset All</button>
+        </div>
+
+        <div class="results-section">
+            <div class="results-header">
+                <h2>Filtered Results <span id="resultsCount" class="badge">0</span></h2>
+                <button id="toggleView" class="btn-small">Show Details</button>
+            </div>
+            
+            <div class="results-container" id="resultsContainer">
+                <div class="empty-state">
+                    <p>No filters applied yet. Select criteria and click "Apply Filters".</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="saveResults" class="btn btn-outline" disabled>
+                <span>💾</span> Save Results
+            </button>
+            <button id="copyResults" class="btn btn-outline" disabled>
+                <span>📋</span> Copy as CSV
+            </button>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
