@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Research or Report Reference Finder",
+  "description": "Filter and organize research references from web pages.",
+  "version": "1.0",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
