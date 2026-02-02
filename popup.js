@@ -37,50 +37,63 @@ function loadReferences() {
         }
 
         displayResults(allLinks);
-        populateFilters();
+        populateWebsiteFilter();
       }
     );
   });
 }
 
 function setupEventListeners() {
+  const websiteFilter = document.getElementById("websiteFilter");
   const filterBtn = document.getElementById("filterBtn");
-  const authorFilter = document.getElementById("authorFilter");
-  const yearFilter = document.getElementById("yearFilter");
 
+  if (websiteFilter) websiteFilter.addEventListener("change", onWebsiteChange);
   if (filterBtn) filterBtn.addEventListener("click", applyFilters);
-  if (authorFilter) authorFilter.addEventListener("change", applyFilters);
-  if (yearFilter) yearFilter.addEventListener("change", applyFilters);
 }
 
-function applyFilters() {
-  const selectedAuthor = document.getElementById("authorFilter").value;
-  const selectedYear = document.getElementById("yearFilter").value;
+function populateWebsiteFilter() {
+  const websites = [...new Set(allLinks.map(l => l.domain).filter(d => d))].sort();
 
-  console.log("Filtering - Author: '" + selectedAuthor + "' Year: '" + selectedYear + "'");
+  const websiteSelect = document.getElementById("websiteFilter");
+  
+  console.log("Unique websites: " + websites.length);
 
-  let filtered = allLinks.filter(link => {
-    const authorMatch = selectedAuthor === "" || link.author === selectedAuthor;
-    const yearMatch = selectedYear === "" || link.year === selectedYear;
-    
-    console.log("Link: " + link.author + " (" + link.year + ") - Author match: " + authorMatch + " Year match: " + yearMatch);
-    
-    return authorMatch && yearMatch;
+  websites.forEach(website => {
+    const option = document.createElement("option");
+    option.value = website;
+    option.textContent = website;
+    websiteSelect.appendChild(option);
   });
-
-  console.log("Filtered results: " + filtered.length);
-  displayResults(filtered);
 }
 
-function populateFilters() {
-  const authors = [...new Set(allLinks.map(l => l.author).filter(a => a))].sort();
-  const years = [...new Set(allLinks.map(l => l.year).filter(y => y))].sort((a, b) => b - a);
+function onWebsiteChange() {
+  const selectedWebsite = document.getElementById("websiteFilter").value;
+  
+  console.log("Website changed to: " + selectedWebsite);
 
+  // Filter links by selected website
+  const websiteLinks = selectedWebsite === "" ? allLinks : allLinks.filter(l => l.domain === selectedWebsite);
+
+  // Populate author and year dropdowns based on selected website
+  populateAuthorFilter(websiteLinks);
+  populateYearFilter(websiteLinks);
+
+  // Reset and display all results from selected website
+  applyFilters();
+}
+
+function populateAuthorFilter(linksToUse) {
   const authorSelect = document.getElementById("authorFilter");
-  const yearSelect = document.getElementById("yearFilter");
+  const currentValue = authorSelect.value;
+  
+  // Clear existing options except the first one
+  while (authorSelect.options.length > 1) {
+    authorSelect.remove(1);
+  }
 
-  console.log("Unique authors: " + authors.length);
-  console.log("Unique years: " + years.length);
+  const authors = [...new Set(linksToUse.map(l => l.author).filter(a => a))].sort();
+
+  console.log("Authors in selected website: " + authors.length);
 
   authors.forEach(author => {
     const option = document.createElement("option");
@@ -89,12 +102,59 @@ function populateFilters() {
     authorSelect.appendChild(option);
   });
 
+  // Restore previous selection if it still exists
+  if ([...authorSelect.options].map(o => o.value).includes(currentValue)) {
+    authorSelect.value = currentValue;
+  } else {
+    authorSelect.value = "";
+  }
+}
+
+function populateYearFilter(linksToUse) {
+  const yearSelect = document.getElementById("yearFilter");
+  const currentValue = yearSelect.value;
+  
+  // Clear existing options except the first one
+  while (yearSelect.options.length > 1) {
+    yearSelect.remove(1);
+  }
+
+  const years = [...new Set(linksToUse.map(l => l.year).filter(y => y))].sort((a, b) => b - a);
+
+  console.log("Years in selected website: " + years.length);
+
   years.forEach(year => {
     const option = document.createElement("option");
     option.value = year;
     option.textContent = year;
     yearSelect.appendChild(option);
   });
+
+  // Restore previous selection if it still exists
+  if ([...yearSelect.options].map(o => o.value).includes(currentValue)) {
+    yearSelect.value = currentValue;
+  } else {
+    yearSelect.value = "";
+  }
+}
+
+function applyFilters() {
+  const selectedWebsite = document.getElementById("websiteFilter").value;
+  const selectedAuthor = document.getElementById("authorFilter").value;
+  const selectedYear = document.getElementById("yearFilter").value;
+
+  console.log("Filtering - Website: '" + selectedWebsite + "' Author: '" + selectedAuthor + "' Year: '" + selectedYear + "'");
+
+  let filtered = allLinks.filter(link => {
+    const websiteMatch = selectedWebsite === "" || link.domain === selectedWebsite;
+    const authorMatch = selectedAuthor === "" || link.author === selectedAuthor;
+    const yearMatch = selectedYear === "" || link.year === selectedYear;
+    
+    return websiteMatch && authorMatch && yearMatch;
+  });
+
+  console.log("Filtered results: " + filtered.length);
+  displayResults(filtered);
 }
 
 function displayResults(links) {
@@ -106,71 +166,43 @@ function displayResults(links) {
     return;
   }
 
-  // Group links by domain
-  const groupedByDomain = {};
   links.forEach(link => {
-    if (!groupedByDomain[link.domain]) {
-      groupedByDomain[link.domain] = [];
-    }
-    groupedByDomain[link.domain].push(link);
-  });
+    const li = document.createElement("li");
+    const div = document.createElement("div");
+    div.className = "reference-item";
+    
+    const titleDiv = document.createElement("div");
+    titleDiv.className = "ref-title";
+    const a = document.createElement("a");
+    a.href = link.url;
+    a.textContent = link.text;
+    a.target = "_blank";
+    a.className = "ref-link";
+    titleDiv.appendChild(a);
 
-  // Sort domains alphabetically
-  const sortedDomains = Object.keys(groupedByDomain).sort();
+    const metaDiv = document.createElement("div");
+    metaDiv.className = "ref-meta";
+    
+    const authorSpan = document.createElement("span");
+    authorSpan.className = "tag author-tag";
+    authorSpan.textContent = link.author;
+    metaDiv.appendChild(authorSpan);
+    
+    const yearSpan = document.createElement("span");
+    yearSpan.className = "tag year-tag";
+    yearSpan.textContent = link.year;
+    metaDiv.appendChild(yearSpan);
 
-  // Display grouped results
-  sortedDomains.forEach(domain => {
-    const domainLinks = groupedByDomain[domain];
+    const copyBtn = document.createElement("button");
+    copyBtn.textContent = "Copy";
+    copyBtn.className = "copy-btn";
+    copyBtn.addEventListener("click", () => copyToClipboard(link));
 
-    // Create domain header
-    const domainHeader = document.createElement("li");
-    domainHeader.className = "domain-header";
-    const headerText = document.createElement("div");
-    headerText.className = "domain-name";
-    headerText.textContent = "🌐 " + domain + " (" + domainLinks.length + ")";
-    domainHeader.appendChild(headerText);
-    list.appendChild(domainHeader);
-
-    // Add links under this domain
-    domainLinks.forEach(link => {
-      const li = document.createElement("li");
-      const div = document.createElement("div");
-      div.className = "reference-item";
-      
-      const titleDiv = document.createElement("div");
-      titleDiv.className = "ref-title";
-      const a = document.createElement("a");
-      a.href = link.url;
-      a.textContent = link.text;
-      a.target = "_blank";
-      a.className = "ref-link";
-      titleDiv.appendChild(a);
-
-      const metaDiv = document.createElement("div");
-      metaDiv.className = "ref-meta";
-      
-      const authorSpan = document.createElement("span");
-      authorSpan.className = "tag author-tag";
-      authorSpan.textContent = link.author;
-      metaDiv.appendChild(authorSpan);
-      
-      const yearSpan = document.createElement("span");
-      yearSpan.className = "tag year-tag";
-      yearSpan.textContent = link.year;
-      metaDiv.appendChild(yearSpan);
-
-      const copyBtn = document.createElement("button");
-      copyBtn.textContent = "Copy";
-      copyBtn.className = "copy-btn";
-      copyBtn.addEventListener("click", () => copyToClipboard(link));
-
-      div.appendChild(titleDiv);
-      div.appendChild(metaDiv);
-      div.appendChild(copyBtn);
-      li.appendChild(div);
-      li.className = "domain-item";
-      list.appendChild(li);
-    });
+    div.appendChild(titleDiv);
+    div.appendChild(metaDiv);
+    div.appendChild(copyBtn);
+    li.appendChild(div);
+    list.appendChild(li);
   });
 }
 
