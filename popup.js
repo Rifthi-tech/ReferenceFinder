@@ -1,41 +1,56 @@
 let allLinks = [];
 
 window.addEventListener("load", () => {
-  console.log("Popup loaded");
+  console.log("===== POPUP LOADED =====");
   setTimeout(() => {
     loadReferences();
     setupEventListeners();
-  }, 100);
+  }, 200);
 });
 
 function loadReferences() {
-  console.log("Loading references from page...");
+  console.log("Starting loadReferences...");
   
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    console.log("Tabs query returned:", tabs);
+    
     if (!tabs || tabs.length === 0) {
-      console.error("No active tab");
-      document.getElementById("results").innerHTML = "<li>No active tab</li>";
+      console.error("NO ACTIVE TAB FOUND");
+      document.getElementById("results").innerHTML = "<li style='color:red;'>Error: No active tab</li>";
       return;
     }
 
     const tabId = tabs[0].id;
+    const tabUrl = tabs[0].url;
+    console.log("Active tab ID:", tabId, "URL:", tabUrl);
+    
+    console.log("Sending message to content script...");
+    
     chrome.tabs.sendMessage(
       tabId,
       { action: "getLinks" },
       (response) => {
+        console.log("Response received from content script:", response);
+        
         if (chrome.runtime.lastError) {
-          console.error("Error:", chrome.runtime.lastError);
+          console.error("MESSAGE ERROR:", chrome.runtime.lastError.message);
+          const resultsDiv = document.getElementById("results");
+          if (resultsDiv) {
+            resultsDiv.innerHTML = "<li style='color:red;'>Error: " + chrome.runtime.lastError.message + "</li>";
+          }
           return;
         }
 
         allLinks = response || [];
-        console.log("Found " + allLinks.length + " references with author and year");
+        console.log("Total links received:", allLinks.length);
         
         if (allLinks.length === 0) {
-          document.getElementById("results").innerHTML = "<li>No references found on this page</li>";
+          document.getElementById("results").innerHTML = "<li>No references found. Try searching for academic papers or articles.</li>";
           return;
         }
 
+        console.log("Sample links:", allLinks.slice(0, 3));
+        
         displayResults(allLinks);
         populateWebsiteFilter();
       }
@@ -44,11 +59,24 @@ function loadReferences() {
 }
 
 function setupEventListeners() {
+  console.log("Setting up event listeners...");
+  
   const websiteFilter = document.getElementById("websiteFilter");
   const filterBtn = document.getElementById("filterBtn");
 
-  if (websiteFilter) websiteFilter.addEventListener("change", onWebsiteChange);
-  if (filterBtn) filterBtn.addEventListener("click", applyFilters);
+  if (websiteFilter) {
+    websiteFilter.addEventListener("change", onWebsiteChange);
+    console.log("Website filter listener added");
+  } else {
+    console.error("websiteFilter element not found!");
+  }
+  
+  if (filterBtn) {
+    filterBtn.addEventListener("click", applyFilters);
+    console.log("Filter button listener added");
+  } else {
+    console.error("filterBtn element not found!");
+  }
 }
 
 function populateWebsiteFilter() {
@@ -56,7 +84,8 @@ function populateWebsiteFilter() {
 
   const websiteSelect = document.getElementById("websiteFilter");
   
-  console.log("Unique websites: " + websites.length);
+  console.log("Populating website filter with " + websites.length + " unique websites");
+  console.log("Websites:", websites);
 
   websites.forEach(website => {
     const option = document.createElement("option");
@@ -69,16 +98,15 @@ function populateWebsiteFilter() {
 function onWebsiteChange() {
   const selectedWebsite = document.getElementById("websiteFilter").value;
   
-  console.log("Website changed to: " + selectedWebsite);
+  console.log("Website selection changed to: '" + selectedWebsite + "'");
 
-  // Filter links by selected website
   const websiteLinks = selectedWebsite === "" ? allLinks : allLinks.filter(l => l.domain === selectedWebsite);
 
-  // Populate author and year dropdowns based on selected website
+  console.log("Links for selected website:", websiteLinks.length);
+
   populateAuthorFilter(websiteLinks);
   populateYearFilter(websiteLinks);
 
-  // Reset and display all results from selected website
   applyFilters();
 }
 
@@ -86,14 +114,13 @@ function populateAuthorFilter(linksToUse) {
   const authorSelect = document.getElementById("authorFilter");
   const currentValue = authorSelect.value;
   
-  // Clear existing options except the first one
   while (authorSelect.options.length > 1) {
     authorSelect.remove(1);
   }
 
   const authors = [...new Set(linksToUse.map(l => l.author).filter(a => a))].sort();
 
-  console.log("Authors in selected website: " + authors.length);
+  console.log("Authors: " + authors.length, authors.slice(0, 5));
 
   authors.forEach(author => {
     const option = document.createElement("option");
@@ -102,7 +129,6 @@ function populateAuthorFilter(linksToUse) {
     authorSelect.appendChild(option);
   });
 
-  // Restore previous selection if it still exists
   if ([...authorSelect.options].map(o => o.value).includes(currentValue)) {
     authorSelect.value = currentValue;
   } else {
@@ -114,14 +140,13 @@ function populateYearFilter(linksToUse) {
   const yearSelect = document.getElementById("yearFilter");
   const currentValue = yearSelect.value;
   
-  // Clear existing options except the first one
   while (yearSelect.options.length > 1) {
     yearSelect.remove(1);
   }
 
   const years = [...new Set(linksToUse.map(l => l.year).filter(y => y))].sort((a, b) => b - a);
 
-  console.log("Years in selected website: " + years.length);
+  console.log("Years: " + years.length, years);
 
   years.forEach(year => {
     const option = document.createElement("option");
@@ -130,7 +155,6 @@ function populateYearFilter(linksToUse) {
     yearSelect.appendChild(option);
   });
 
-  // Restore previous selection if it still exists
   if ([...yearSelect.options].map(o => o.value).includes(currentValue)) {
     yearSelect.value = currentValue;
   } else {
@@ -143,7 +167,7 @@ function applyFilters() {
   const selectedAuthor = document.getElementById("authorFilter").value;
   const selectedYear = document.getElementById("yearFilter").value;
 
-  console.log("Filtering - Website: '" + selectedWebsite + "' Author: '" + selectedAuthor + "' Year: '" + selectedYear + "'");
+  console.log("Applying filters - Website: '" + selectedWebsite + "' Author: '" + selectedAuthor + "' Year: '" + selectedYear + "'");
 
   let filtered = allLinks.filter(link => {
     const websiteMatch = selectedWebsite === "" || link.domain === selectedWebsite;
@@ -159,6 +183,11 @@ function applyFilters() {
 
 function displayResults(links) {
   const list = document.getElementById("results");
+  if (!list) {
+    console.error("Results list element not found!");
+    return;
+  }
+  
   list.innerHTML = "";
 
   if (links.length === 0) {
@@ -209,7 +238,7 @@ function displayResults(links) {
 function copyToClipboard(link) {
   const text = link.author + " (" + link.year + ")\n" + link.text + "\n" + link.url;
   navigator.clipboard.writeText(text).then(() => {
-    alert("Reference copied to clipboard!");
+    alert("Reference copied!");
   }).catch(err => {
     console.error("Copy failed:", err);
   });
