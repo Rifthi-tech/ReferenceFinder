@@ -89,11 +89,26 @@ li {
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-li.no-results {
-  text-align: center;
-  color: #999;
-  border-left: none;
-  padding: 20px 12px;
+li.domain-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-left: 4px solid #5a67d8;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+li.domain-item {
+  margin-left: 12px;
+  margin-bottom: 8px;
+  border-left: 3px solid #90caf9;
+}
+
+.domain-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
 }
 
 .reference-item {

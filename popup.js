@@ -106,48 +106,71 @@ function displayResults(links) {
     return;
   }
 
+  // Group links by domain
+  const groupedByDomain = {};
   links.forEach(link => {
-    const li = document.createElement("li");
-    const div = document.createElement("div");
-    div.className = "reference-item";
-    
-    const titleDiv = document.createElement("div");
-    titleDiv.className = "ref-title";
-    const a = document.createElement("a");
-    a.href = link.url;
-    a.textContent = link.text;
-    a.target = "_blank";
-    a.className = "ref-link";
-    titleDiv.appendChild(a);
+    if (!groupedByDomain[link.domain]) {
+      groupedByDomain[link.domain] = [];
+    }
+    groupedByDomain[link.domain].push(link);
+  });
 
-    const metaDiv = document.createElement("div");
-    metaDiv.className = "ref-meta";
-    
-    const authorSpan = document.createElement("span");
-    authorSpan.className = "tag author-tag";
-    authorSpan.textContent = "Author: " + link.author;
-    metaDiv.appendChild(authorSpan);
-    
-    const yearSpan = document.createElement("span");
-    yearSpan.className = "tag year-tag";
-    yearSpan.textContent = "Year: " + link.year;
-    metaDiv.appendChild(yearSpan);
-    
-    const domainSpan = document.createElement("span");
-    domainSpan.className = "tag domain-tag";
-    domainSpan.textContent = "Website: " + link.domain;
-    metaDiv.appendChild(domainSpan);
+  // Sort domains alphabetically
+  const sortedDomains = Object.keys(groupedByDomain).sort();
 
-    const copyBtn = document.createElement("button");
-    copyBtn.textContent = "Copy Link";
-    copyBtn.className = "copy-btn";
-    copyBtn.addEventListener("click", () => copyToClipboard(link));
+  // Display grouped results
+  sortedDomains.forEach(domain => {
+    const domainLinks = groupedByDomain[domain];
 
-    div.appendChild(titleDiv);
-    div.appendChild(metaDiv);
-    div.appendChild(copyBtn);
-    li.appendChild(div);
-    list.appendChild(li);
+    // Create domain header
+    const domainHeader = document.createElement("li");
+    domainHeader.className = "domain-header";
+    const headerText = document.createElement("div");
+    headerText.className = "domain-name";
+    headerText.textContent = "🌐 " + domain + " (" + domainLinks.length + ")";
+    domainHeader.appendChild(headerText);
+    list.appendChild(domainHeader);
+
+    // Add links under this domain
+    domainLinks.forEach(link => {
+      const li = document.createElement("li");
+      const div = document.createElement("div");
+      div.className = "reference-item";
+      
+      const titleDiv = document.createElement("div");
+      titleDiv.className = "ref-title";
+      const a = document.createElement("a");
+      a.href = link.url;
+      a.textContent = link.text;
+      a.target = "_blank";
+      a.className = "ref-link";
+      titleDiv.appendChild(a);
+
+      const metaDiv = document.createElement("div");
+      metaDiv.className = "ref-meta";
+      
+      const authorSpan = document.createElement("span");
+      authorSpan.className = "tag author-tag";
+      authorSpan.textContent = link.author;
+      metaDiv.appendChild(authorSpan);
+      
+      const yearSpan = document.createElement("span");
+      yearSpan.className = "tag year-tag";
+      yearSpan.textContent = link.year;
+      metaDiv.appendChild(yearSpan);
+
+      const copyBtn = document.createElement("button");
+      copyBtn.textContent = "Copy";
+      copyBtn.className = "copy-btn";
+      copyBtn.addEventListener("click", () => copyToClipboard(link));
+
+      div.appendChild(titleDiv);
+      div.appendChild(metaDiv);
+      div.appendChild(copyBtn);
+      li.appendChild(div);
+      li.className = "domain-item";
+      list.appendChild(li);
+    });
   });
 }
 
