@@ -20,18 +20,19 @@
         }
 
         .header {
-            background: linear-gradient(90deg,#1a73e8 0%, #4caf50 100%);
+            background: rgba(1, 1, 1, 1.0);
+            background: conic-gradient(from 135deg, rgba(1, 1, 1, 1.0), rgba(40, 35, 143, 1.0));
             color: white;
-            padding: 12px;
+            padding: 20px;
             margin: -16px -16px 14px -16px;
-            text-align: left;
+            font-size: 15px;
             font-weight: 700;
             border-radius: 6px;
             box-shadow: 0 2px 6px rgba(32,33,36,0.08);
             display:flex; align-items:center; gap:10px;
         }
 
-        .header::before { content: '🔎'; font-size:18px; }
+        
 
         .loading {
             text-align: center;
@@ -96,7 +97,7 @@
         .results-section { margin-top:14px; }
 
         .result-item {
-            padding: 12px; margin:8px 0; background: #ffffff; border-radius:8px; border-left:4px solid #6f42c1;
+            padding: 12px; margin:8px 0; background: #ffffff; border-radius:8px; border-left:4px solid #28238F;
             box-shadow: 0 1px 3px rgba(32,33,36,0.04);
         }
         .result-item:hover { transform: translateY(-2px); box-shadow:0 6px 18px rgba(32,33,36,0.08); }
@@ -113,7 +114,7 @@
 </head>
 <body>
     <div class="header">
-        🔍 Research Finder
+        Research Finder
     </div>
     
     <div class="container">
